@@ -1,6 +1,6 @@
 # Product Owner Brief – DevOps Cohort
 **Project:** Spring Petclinic Microservices on **AWS**  
-**Version:** v1.0 • **Owner (Business Owner):** Pravin Mishra  
+**Version:** v1.0 • **Owner (Business Owner):** Pravin Mishra , Akash Sharma 
 **Product Owners:** `<PO-1 Name>`, `<PO-2 Name>`  
 **Date:** 2025-09-14
 
