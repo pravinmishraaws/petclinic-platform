@@ -1,0 +1,3 @@
+[submodule "vendor/petclinic"]
+	path = vendor/petclinic
+	url = git@github.com:pravinmishraaws/spring-petclinic-microservices

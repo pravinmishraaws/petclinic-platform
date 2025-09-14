@@ -1,0 +1,6 @@
+/vendor/petclinic/**  @pravinmishra @PO1 @PO2
+/terraform/**         @infra-team
+/k8s/**               @sre-team
+/ansible/**           @ops-team
+/docs/**              @PO1 @PO2 @sre-team
+/pipelines/**         @cicd-team
