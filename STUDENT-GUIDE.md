@@ -4,7 +4,7 @@
 
 ---
 
-## TL;DR — Your 8-step workflow
+## Your 8-step workflow
 1. **Fork** the platform repo → **https://github.com/pravinmishraaws/petclinic-platform** → click **Fork** to your GitHub account.  
 2. **Clone your fork with submodules**  
    ```bash
