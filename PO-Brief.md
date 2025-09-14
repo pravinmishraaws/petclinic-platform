@@ -109,13 +109,14 @@ Required pages (platform repo unless noted):
 
 ## 9) Backlog Structure (Epics)
 1. **Foundations & Ways of Working**  
-2. **Terraform Infrastructure (AWS)**  
-3. **Ansible Ops VM & Access**  
-4. **Containerization & Registry**  
-5. **Kubernetes Deployments**  
-6. **Observability**  
-7. **Security & Compliance Baseline**  
-8. **Documentation & Handover**
+2. **Manual Bring-Up (AWS) — Spring Petclinic Microservices**
+3. **Terraform Infrastructure (AWS)**  
+4. **Ansible Ops VM & Access**  
+5. **Containerization & Registry**  
+6. **Kubernetes Deployments**  
+7. **Observability**  
+8. **Security & Compliance Baseline**  
+9. **Documentation & Handover**
 
 Each Epic includes explicit **Doc Tasks** and **Exit Criteria**.
 
