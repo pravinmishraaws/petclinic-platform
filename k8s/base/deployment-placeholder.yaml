@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: placeholder-service
+  namespace: app-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: placeholder-service
+  template:
+    metadata:
+      labels:
+        app: placeholder-service
+    spec:
+      serviceAccountName: app-service
+      containers:
+      - name: app
+        image: <ECR_REG>/placeholder:<TAG>
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet: { path: /actuator/health/readiness, port: 8080 }
+          initialDelaySeconds: 10
+        livenessProbe:
+          httpGet: { path: /actuator/health/liveness, port: 8080 }
+          initialDelaySeconds: 20
+        resources:
+          requests: { cpu: 100m, memory: 128Mi }
+          limits:   { cpu: 500m, memory: 512Mi }

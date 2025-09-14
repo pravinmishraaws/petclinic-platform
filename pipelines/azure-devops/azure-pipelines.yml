@@ -1,0 +1,26 @@
+trigger:
+  branches: [ main ]
+
+pool: { vmImage: 'ubuntu-latest' }
+
+stages:
+- stage: Build
+  jobs:
+  - job: build
+    steps:
+    - checkout: self
+      submodules: true
+    - script: |
+        echo "TODO: docker login to ECR"
+        echo "TODO: build images from vendor/petclinic and push with tag $(Build.SourceVersion)"
+      displayName: Build & Push
+
+- stage: Deploy_Dev
+  dependsOn: Build
+  jobs:
+  - job: deploy
+    steps:
+    - script: |
+        echo "TODO: aws eks update-kubeconfig --name <EKS_CLUSTER> --region <REGION>"
+        echo "TODO: kubectl apply -f k8s/base/"
+      displayName: Deploy to dev

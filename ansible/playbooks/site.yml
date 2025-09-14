@@ -1,0 +1,38 @@
+---
+- name: Bootstrap and harden ops VM
+  hosts: ops
+  become: yes
+  vars:
+    docker_pkg: docker.io
+  tasks:
+    - name: Ensure apt cache is up to date
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install tools
+      ansible.builtin.apt:
+        name:
+          - "{{ docker_pkg }}"
+          - kubectl
+          - awscli
+        state: present
+
+    - name: Add devops user to docker group (if exists)
+      ansible.builtin.user:
+        name: devops
+        groups: docker
+        append: yes
+      ignore_errors: yes
+
+    - name: Disable SSH password authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: Restart SSH
+
+  handlers:
+    - name: Restart SSH
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
