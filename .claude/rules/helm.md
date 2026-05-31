@@ -48,8 +48,8 @@ Each service file MUST specify:
 - `prod.yaml` — 2 replicas, ECR registry `petclinic-prod`; HPA/PDB controlled per-service
 
 **ECR registry** is set in the env file (`image.registry`), not per-service:
-- dev: `533267262133.dkr.ecr.eu-central-1.amazonaws.com/petclinic-dev`
-- prod: `533267262133.dkr.ecr.eu-central-1.amazonaws.com/petclinic-prod`
+- dev: `428101261622.dkr.ecr.us-east-1.amazonaws.com/petclinic-dev`
+- prod: `428101261622.dkr.ecr.us-east-1.amazonaws.com/petclinic-prod`
 
 ## Template Conventions
 

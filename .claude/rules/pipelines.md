@@ -34,7 +34,7 @@ GitHub Actions handles **CI only**. ArgoCD handles **CD**. CI never runs `kubect
 4. **Image tags** — use commit SHA (`${{ github.sha }}` short form), never `latest`
 5. **Reusable workflows** — common steps in `.github/workflows/reusable/` to avoid duplication
 6. **Artifact retention** — scan results saved as workflow artifacts for audit
-7. **ECR login** — `aws ecr get-login-password --region eu-central-1`
+7. **ECR login** — `aws ecr get-login-password --region us-east-1`
 
 ## Trigger Patterns
 

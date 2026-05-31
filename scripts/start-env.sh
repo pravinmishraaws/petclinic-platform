@@ -12,7 +12,7 @@ set -euo pipefail
 #   ./scripts/start-env.sh prod
 #
 
-REGION="${AWS_DEFAULT_REGION:-eu-central-1}"
+REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 
 # Default node counts (adjust if your Terraform uses different values)
 DEV_DESIRED_NODES=2

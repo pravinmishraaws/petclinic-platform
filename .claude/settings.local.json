@@ -1,13 +1,19 @@
 {
   "env": {
-    "AWS_REGION": "eu-central-1",
+    "AWS_REGION": "us-east-1",
     "AWS_PROFILE": "default"
   },
   "permissions": {
     "allow": [
       "Bash(git init *)",
       "Bash(git checkout *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(echo \"EXIT: $?\")",
+      "mcp__atlassian__getIssueLinkTypes",
+      "mcp__atlassian__getJiraIssueTypeMetaWithFields",
+      "mcp__atlassian__createJiraIssue",
+      "mcp__atlassian__editJiraIssue",
+      "mcp__atlassian__searchJiraIssuesUsingJql"
     ]
   },
   "enabledMcpjsonServers": [

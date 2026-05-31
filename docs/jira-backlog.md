@@ -86,7 +86,7 @@ Create `.mcp.json` at the project root with all MCP servers needed for the infra
 - [ ] `.mcp.json` at petclinic-platform root
 - [ ] Terraform MCP server configured (`awslabs.terraform-mcp-server`)
 - [ ] AWS Knowledge MCP configured (`aws-knowledge-mcp`)
-- [ ] AWS Pricing MCP configured (`awslabs.aws-pricing-mcp-server`, region: eu-central-1)
+- [ ] AWS Pricing MCP configured (`awslabs.aws-pricing-mcp-server`, region: us-east-1)
 - [ ] Context7 MCP configured (library documentation)
 - [ ] Atlassian MCP configured (Jira ticket management)
 - [ ] No secrets stored in `.mcp.json` — credentials come from user's local environment
@@ -240,7 +240,7 @@ Create a bootstrap script that provisions the S3 bucket (versioning enabled, enc
 - [ ] S3 bucket has public access blocked (all 4 settings)
 - [ ] DynamoDB table created with `LockID` as partition key (String)
 - [ ] Script is idempotent (safe to run multiple times)
-- [ ] Script accepts region as parameter (default: eu-central-1)
+- [ ] Script accepts region as parameter (default: us-east-1)
 
 ---
 
@@ -263,7 +263,7 @@ Configure the S3 backend in `terraform/environments/dev/backend.tf` pointing to 
 - [ ] State key: `petclinic/dev/terraform.tfstate`
 - [ ] DynamoDB table referenced for locking
 - [ ] Encryption enabled
-- [ ] Region set to eu-central-1
+- [ ] Region set to us-east-1
 - [ ] `terraform init` succeeds
 
 ---
@@ -308,7 +308,7 @@ Set up provider configuration and version constraints in both environment root m
 - [ ] `versions.tf` in both dev/ and prod/ with required_version >= 1.6.0
 - [ ] AWS provider source and version constraint (~> 5.0) defined
 - [ ] `providers.tf` in both environments configuring AWS provider with `var.aws_region`
-- [ ] `variables.tf` defines aws_region variable (default: eu-central-1)
+- [ ] `variables.tf` defines aws_region variable (default: us-east-1)
 - [ ] `variables.tf` defines environment variable (dev or prod)
 - [ ] `variables.tf` defines project variable (default: petclinic)
 - [ ] Common tags defined: Project, Environment, ManagedBy=terraform
@@ -633,7 +633,7 @@ Call the EKS module from prod environment with prod-appropriate sizing.
 # EPIC E-4: Container Registry (ECR)
 
 **Priority:** P0
-**Description:** Create ECR private repositories for all 8 microservices with lifecycle policies, scan-on-push, and configurable tag immutability (MUTABLE dev, IMMUTABLE prod). Images stored at `{account}.dkr.ecr.eu-central-1.amazonaws.com/petclinic-{env}/{service}:{tag}`. Cost: ~$1/month beyond 500 MB free tier.
+**Description:** Create ECR private repositories for all 8 microservices with lifecycle policies, scan-on-push, and configurable tag immutability (MUTABLE dev, IMMUTABLE prod). Images stored at `{account}.dkr.ecr.us-east-1.amazonaws.com/petclinic-{env}/{service}:{tag}`. Cost: ~$1/month beyond 500 MB free tier.
 **Blocked by:** E-1
 **Blocks:** E-10, E-17
 
@@ -706,7 +706,7 @@ Call the ECR module from dev environment with all 8 service names and deploy. EC
 **Acceptance Criteria:**
 - [ ] ECR module called with service_names: [config-server, discovery-server, api-gateway, customers-service, visits-service, vets-service, genai-service, admin-server]
 - [ ] `terraform apply` succeeds
-- [ ] 8 ECR repositories visible in eu-central-1 under `petclinic-dev/` prefix
+- [ ] 8 ECR repositories visible in us-east-1 under `petclinic-dev/` prefix
 - [ ] Repository URIs accessible and correct
 - [ ] Scan-on-push enabled on all repos
 
@@ -722,15 +722,15 @@ Call the ECR module from dev environment with all 8 service names and deploy. EC
 **Blocked by:** PETPLAT-20
 
 **Description:**
-Create `scripts/ecr-login.sh` that authenticates Docker to the ECR private registry in eu-central-1.
+Create `scripts/ecr-login.sh` that authenticates Docker to the ECR private registry in us-east-1.
 
 **Technical Spec:** [ECR Container Registry](./technical-spec.md#ecr-container-registry)
 
 **Acceptance Criteria:**
 - [ ] Script at `scripts/ecr-login.sh`
-- [ ] Uses `aws ecr get-login-password --region eu-central-1` and pipes to `docker login {account}.dkr.ecr.eu-central-1.amazonaws.com`
+- [ ] Uses `aws ecr get-login-password --region us-east-1` and pipes to `docker login {account}.dkr.ecr.us-east-1.amazonaws.com`
 - [ ] Works on macOS and Linux
-- [ ] Accepts optional `--region` parameter (defaults to eu-central-1)
+- [ ] Accepts optional `--region` parameter (defaults to us-east-1)
 
 ---
 
@@ -1202,7 +1202,7 @@ Config Server must deploy first. All other services depend on it.
 - [ ] Readiness probe: /actuator/health, port 8888
 - [ ] Liveness probe: /actuator/health, port 8888
 - [ ] Resource requests: cpu=100m, memory=128Mi; limits: cpu=500m, memory=512Mi
-- [ ] Image: `{account}.dkr.ecr.eu-central-1.amazonaws.com/petclinic-{env}/config-server:<TAG>` (placeholder)
+- [ ] Image: `{account}.dkr.ecr.us-east-1.amazonaws.com/petclinic-{env}/config-server:<TAG>` (placeholder)
 - [ ] ServiceAccount created
 - [ ] `kubectl apply --dry-run=client` passes
 
@@ -1472,7 +1472,7 @@ Create the GitHub Actions workflow that builds Docker images for changed service
 - [ ] Build image for each changed service — `--platform linux/arm64`
 - [ ] Trivy scan each image before push — fail on CRITICAL vulnerabilities
 - [ ] Tag with 7-character commit SHA — `github.sha[:7]`
-- [ ] Push to ECR: `{account}.dkr.ecr.eu-central-1.amazonaws.com/petclinic-dev/{service}:{sha}`
+- [ ] Push to ECR: `{account}.dkr.ecr.us-east-1.amazonaws.com/petclinic-dev/{service}:{sha}`
 - [ ] After all changed services are pushed, fire `repository_dispatch` event type `app-image-built` to the platform repo using `PLATFORM_REPO_TOKEN` secret — payload includes SHA and list of changed services only
 - [ ] Pipeline succeeds end-to-end
 
@@ -2248,9 +2248,9 @@ Perform the first-time manual build of all 8 Docker images from the application 
 **Acceptance Criteria:**
 - [ ] Application repo cloned locally
 - [ ] `./mvnw clean install -P buildDocker` succeeds (all 8 images built)
-- [ ] ECR login successful: `aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin {account}.dkr.ecr.eu-central-1.amazonaws.com`
+- [ ] ECR login successful: `aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin {account}.dkr.ecr.us-east-1.amazonaws.com`
 - [ ] All 8 images tagged with initial version (e.g., `v1.0.0` or commit SHA)
-- [ ] All 8 images pushed to ECR (`{account}.dkr.ecr.eu-central-1.amazonaws.com/petclinic-dev/{service}:{tag}`)
+- [ ] All 8 images pushed to ECR (`{account}.dkr.ecr.us-east-1.amazonaws.com/petclinic-dev/{service}:{tag}`)
 - [ ] Verified: images visible in AWS ECR Console
 - [ ] Documented: the build and push commands for reference
 
@@ -2544,7 +2544,7 @@ Create a consolidated compliance checklist documenting all security controls, en
 - [ ] K8s RBAC configuration summary
 - [ ] Audit logging: CloudTrail status, EKS audit logs, log retention
 - [ ] Data classification: what is PII, where stored, how protected
-- [ ] GDPR considerations: eu-central-1 data residency noted
+- [ ] GDPR considerations: us-east-1 data residency noted
 - [ ] Vulnerability scanning schedule (Checkov, Trivy in CI, ECR scan-on-push)
 - [ ] Remediation SLAs: Critical (24h), High (72h), Medium (1 week), Low (next sprint)
 
@@ -2728,7 +2728,7 @@ Create per-service values files at `helm-values/{service}.yaml` for all 8 Petcli
 
 **Acceptance Criteria:**
 - [ ] Values files created for all 8 services: `helm-values/config-server.yaml`, `helm-values/discovery-server.yaml`, `helm-values/api-gateway.yaml`, `helm-values/customers-service.yaml`, `helm-values/visits-service.yaml`, `helm-values/vets-service.yaml`, `helm-values/genai-service.yaml`, `helm-values/admin-server.yaml`
-- [ ] Each file specifies: image repo (`{account}.dkr.ecr.eu-central-1.amazonaws.com/petclinic-{env}/{service}`), image tag, container port, service port
+- [ ] Each file specifies: image repo (`{account}.dkr.ecr.us-east-1.amazonaws.com/petclinic-{env}/{service}`), image tag, container port, service port
 - [ ] Database services (customers, visits, vets): Spring profiles `docker,mysql`, datasource URL, secret references for RDS credentials
 - [ ] GenAI service: secret reference for OpenAI API key from Secrets Manager (via ESO)
 - [ ] Config Server: GIT_REPO URL for config

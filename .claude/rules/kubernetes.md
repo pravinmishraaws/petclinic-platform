@@ -69,7 +69,7 @@ Every Deployment MUST include:
 
 3. **Image with SHA tag** (never `latest`):
    ```yaml
-   image: {account}.dkr.ecr.eu-central-1.amazonaws.com/petclinic/{service}:{sha}
+   image: {account}.dkr.ecr.us-east-1.amazonaws.com/petclinic/{service}:{sha}
    ```
 
 ## Service Startup Order

@@ -20,8 +20,8 @@ docs/                                # Architecture docs, runbooks, ADRs
 
 ## Terraform Conventions
 
-- **Provider:** AWS provider ~> 5.0, region eu-central-1
-- **ECR:** Uses `aws_ecr_repository` in eu-central-1 with lifecycle policies, scan-on-push, and configurable tag immutability
+- **Provider:** AWS provider ~> 5.0, region us-east-1
+- **ECR:** Uses `aws_ecr_repository` in us-east-1 with lifecycle policies, scan-on-push, and configurable tag immutability
 - **State:** S3 + DynamoDB locking, key pattern: `petclinic/{env}/terraform.tfstate`
 - **Modules:** All reusable modules in `terraform/modules/`. Environments call modules.
 - **Naming:** `petclinic-{env}-{resource}` (e.g., `petclinic-dev-vpc`, `petclinic-prod-eks`)
@@ -75,7 +75,7 @@ docs/                                # Architecture docs, runbooks, ADRs
 
 | Setting | Dev | Prod |
 |---------|-----|------|
-| Region | eu-central-1 | eu-central-1 |
+| Region | us-east-1 | us-east-1 |
 | K8s namespace | petclinic-dev | petclinic-prod |
 | State key | petclinic/dev/terraform.tfstate | petclinic/prod/terraform.tfstate |
 | RDS instance | db.t4g.micro, single-AZ (free tier) | db.t4g.micro, single-AZ (free tier) |
@@ -102,7 +102,7 @@ docs/                                # Architecture docs, runbooks, ADRs
 - **Target platform:** `linux/arm64` (required for Graviton t4g nodes)
 - Profile: `SPRING_PROFILES_ACTIVE=docker` (set in container)
 - MySQL profile: add `mysql` to active profiles for RDS-backed services
-- ECR repos: `{account}.dkr.ecr.eu-central-1.amazonaws.com/petclinic-{env}/{service-name}`
+- ECR repos: `{account}.dkr.ecr.us-east-1.amazonaws.com/petclinic-{env}/{service-name}`
 - CI/CD builds require `docker buildx` + QEMU for ARM cross-compilation on x86 runners
 
 ## Workflow Commands
@@ -142,7 +142,7 @@ Five MCP servers configured at the project level:
 - **Architecture:** CI (GitHub Actions) + CD (ArgoCD). GitHub Actions NEVER deploys directly.
 - **CI Platform:** GitHub Actions, OIDC federation to AWS (no long-lived credentials)
 - **Image tags:** Commit SHA (`${GITHUB_SHA::7}`), never `latest`
-- **ECR login:** `aws ecr get-login-password --region eu-central-1` (same region as infrastructure)
+- **ECR login:** `aws ecr get-login-password --region us-east-1` (same region as infrastructure)
 - **Image tag update:** CI commits new tag to `helm-values/{service}.yaml` → ArgoCD picks up
 - **Prod gates:** ArgoCD manual sync (not GitHub Environments)
 - **Scanning:** Trivy scan after Docker build, fail on CRITICAL CVEs

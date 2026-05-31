@@ -24,7 +24,7 @@
       ],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR",
-        "AWS_REGION": "eu-central-1"
+        "AWS_REGION": "us-east-1"
       }
     },
     "context7": {

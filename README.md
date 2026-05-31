@@ -73,7 +73,7 @@ petclinic-platform/
 
 | Layer | Tool | Details |
 |-------|------|---------|
-| Cloud | AWS | eu-central-1 |
+| Cloud | AWS | us-east-1 |
 | IaC | Terraform >= 1.6 | AWS provider ~> 5.0, S3 + DynamoDB state |
 | Cluster | Amazon EKS | Managed node groups, OIDC |
 | Registry | Amazon ECR | One repo per service per env, lifecycle policies, scan-on-push |
