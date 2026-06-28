@@ -95,3 +95,19 @@ petclinic-platform/
 |-------------|---------------|-----|---------|
 | dev | `petclinic-dev` | db.t4g.micro, single-AZ (free tier) | Development & testing |
 | prod | `petclinic-prod` | db.t4g.micro, single-AZ (free tier) | Production |
+
+
+## Shared Team Infrastructure Documentation
+* Edited by muneefalfadli-ctrl to demonstrate the safe Git branching and Pull Request workflow.
+* This feature branch isolates changes so they do not break the core production architecture.
+
+
+
+
+
+
+
+
+
+
+
