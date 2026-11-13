@@ -11,3 +11,5 @@ metadata:
 data:
   CONFIG_SERVER_URL: http://config-server:8888
   SPRING_DATASOURCE_URL: "jdbc:mysql://REPLACE_WITH_RDS_ENDPOINT:3306/petclinic"  # set per environment by the overlays
+  MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin.tracing:9411/api/v2/spans
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
