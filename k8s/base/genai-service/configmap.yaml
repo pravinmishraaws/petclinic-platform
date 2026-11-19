@@ -10,3 +10,5 @@ metadata:
     app.kubernetes.io/component: service
 data:
   CONFIG_SERVER_URL: http://config-server:8888
+  MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin.tracing:9411/api/v2/spans
+  MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
