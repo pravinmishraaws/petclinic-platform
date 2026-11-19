@@ -57,6 +57,9 @@ data:
         Flush         5
         Log_Level     info
         Daemon        off
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
         Parsers_File  parsers.conf
 
     [INPUT]
