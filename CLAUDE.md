@@ -166,6 +166,9 @@ Five MCP servers configured at the project level:
 | `block-secret-commit.sh` | Block | `git add .`, committing .env, .tfvars, .pem, .key files |
 | `block-mcp-destroy.sh` | Block | `destroy` via MCP Terraform/Terragrunt tools |
 
+## Git Commits
+**NEVER** commit code without explicit approval from the user first. Always show what changed and ask before committing.
+
 ## Technical Specification
 
 All infrastructure values (CIDRs, ports, instance sizes, security groups, K8s resources, probe timings, alert thresholds) are in [`docs/technical-spec.md`](docs/technical-spec.md). Every Jira story references the relevant spec section. If any specify version are not supported for now just find and fill it with compatible version and update that version into the docs. **Read the spec before implementing any story.**

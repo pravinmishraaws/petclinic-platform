@@ -42,7 +42,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: zipkin
-          image: openzipkin/zipkin:3.5.3
+          image: openzipkin/zipkin:3.6.1
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:

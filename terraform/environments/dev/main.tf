@@ -28,7 +28,7 @@ module "eks" {
   node_instance_types = ["t4g.small"]
   node_min_size       = 2
   node_max_size       = 4
-  node_desired_size   = 3
+  node_desired_size   = 4
 }
 
 module "ecr" {

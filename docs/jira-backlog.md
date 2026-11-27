@@ -21,14 +21,15 @@
 | E-8 | Kubernetes Manifests — Base | P0 | 8 |
 | E-9 | Kubernetes Manifests — Overlays | P1 | 5 |
 | E-10 | CI Pipeline (CI-only, ArgoCD handles CD) | P0 | 7 |
-| E-11 | Observability | P1 | 8 |
+| E-11 | Observability | P1 | 9 |
 | ~~E-12~~ | ~~Bastion Host~~ | ~~P2~~ | ~~0 (removed)~~ |
 | E-13 | Security & Compliance | P1 | 8 |
 | E-14 | Scaling & Cost Optimization (Karpenter) | P2 | 6 |
 | E-15 | Documentation & Runbooks | P1 | 11 |
 | E-16 | Helm Charts | P0 | 5 |
 | E-17 | GitOps with ArgoCD | P0 | 5 |
-| | | **Total** | **108** |
+| E-18 | AI-Assisted Operations (Amazon Bedrock) | P2 | 7 |
+| | | **Total** | **116** |
 
 ---
 
@@ -57,6 +58,7 @@ E-1 (Foundation)
  E-15 (Docs) — ongoing, finalize after all others
  E-16 (Helm Charts) — depends on E-8 (base manifests define what gets templated)
  E-17 (ArgoCD) — depends on E-3 (EKS), E-16 (Helm charts), E-4 (ECR)
+ E-18 (AI Ops / Bedrock) — depends on E-11 (Observability), E-17 (ArgoCD); Bedrock account setup (PETPLAT-117) gates all cluster work
 ```
 
 ---
@@ -1729,6 +1731,34 @@ Deploy Zipkin on EKS for distributed tracing. The app already exports traces via
 
 ---
 
+### PETPLAT-124: Send cluster and pod alerts to Slack (incl. node health and lag alerts)
+
+**Type:** Story
+**Priority:** P1
+**Epic:** E-11 Observability
+**Story Points:** 3
+**Labels:** observability, alerting, slack
+**Blocked by:** PETPLAT-103
+
+**Description:**
+Send critical alerts to a Slack channel so the team is notified when pods or the cluster go down or slow down. Alertmanager (PETPLAT-103) gets a Slack receiver. The Slack webhook URL is a secret: store it in AWS Secrets Manager, sync it with an ExternalSecret, and give Alertmanager the file path (`api_url_file`); never put it in YAML. Add the missing cluster-level alert rules to `k8s/base/observability/alerting-rules.yaml` (existing rules cover service down, error rate, latency, restart loops and memory, but not node or scheduling problems). Critical alerts use `@here` or a user-group mention so phones get a push notification. Slack cannot place phone calls, so a real "wake me up" call is optional and needs an on-call tool (documented as a follow-up, not built here).
+
+**Technical Spec:** [Observability](./technical-spec.md#observability), [Secrets Management](./technical-spec.md#secrets-management)
+
+**Acceptance Criteria:**
+- [ ] Slack app or incoming webhook created for the alert channel (manual step, documented)
+- [ ] Secret `petclinic/{env}/slack-webhook-url` in Secrets Manager (Terraform, value passed as a sensitive variable)
+- [ ] ExternalSecret syncs the webhook into the monitoring namespace; no secrets in YAML or Git
+- [ ] Alertmanager Slack receiver configured; critical → immediate with `@here`, warning → batched
+- [ ] New alert rules added: NodeNotReady, NodeHighCPU, NodeHighMemory, NodeDiskPressure, PodPending, PodCrashLooping or OOMKilled, DeploymentReplicasMismatch
+- [ ] Alerts include env, namespace, pod/node, and a runbook link
+- [ ] Resolved alerts post a "resolved" message
+- [ ] Tested: stop a pod and drain a node in dev; Slack message arrives within 2 minutes
+- [ ] Slack outage does not break alerting (email receiver kept as fallback)
+- [ ] Phone-call escalation (PagerDuty or similar) documented as an optional follow-up
+
+---
+
 ### ~~PETPLAT-61: Create Terraform observability module for CloudWatch resources — REMOVED~~
 
 _Removed: observability stack is fully in-cluster (Prometheus, Loki, Grafana, FluentBit, Zipkin, Alertmanager). No AWS-side resources required — no CloudWatch log groups, no FluentBit IRSA role, no CloudWatch Alarms. PETPLAT-59 covers Loki + FluentBit deployment._
@@ -2948,13 +2978,300 @@ Test the complete GitOps loop: CI builds and pushes image → CI updates image t
 
 ---
 
+# EPIC E-18: AI-Assisted Operations (Amazon Bedrock)
+
+**Priority:** P2
+**Description:** Add AI-assisted cluster diagnostics. The K8sGPT operator watches for problems in EKS (CrashLoopBackOff, failed probes, bad ExternalSecrets, Ingress errors), sends anonymized context to Claude Haiku 5.5 on Amazon Bedrock, and publishes a plain-English explanation and suggested fix, linked from Alertmanager notifications. Access to Bedrock uses IRSA (no API keys). The AI is advisory only: cluster RBAC is read-only.
+**Blocked by:** E-11 (Observability), E-17 (ArgoCD)
+**Blocks:** None
+**Gate:** Bedrock must be set up and verified (PETPLAT-117) BEFORE any in-cluster work (PETPLAT-119 onward). Remind the team to confirm this before starting PETPLAT-119.
+
+---
+
+### PETPLAT-117: Set up Amazon Bedrock access and verify with a test call
+
+**Type:** Task
+**Priority:** P2
+**Epic:** E-18 AI-Assisted Operations (Bedrock)
+**Story Points:** 3
+**Labels:** ai, bedrock, aws, manual-setup
+**Blocked by:** None
+
+**Description:**
+One-time, manual AWS setup so that Claude Haiku 5.5 can be called from the AWS account in us-east-1. Bedrock has no servers to create, but model access and the AWS Marketplace subscription are enabled per account and some steps are console-only (not Terraform). This ticket is a learning task: follow the steps, run the test call, and record the result. **This ticket gates every in-cluster ticket in E-18.**
+
+**Technical Spec:** [AI-Assisted Operations](./technical-spec.md#ai-assisted-operations-amazon-bedrock)
+
+**Steps (detailed guide):**
+
+**Step 1 — Confirm IAM permissions and region**
+
+1a. Verify your AWS identity:
+```bash
+aws sts get-caller-identity --region us-east-1
+```
+
+1b. Check your IAM permissions. If you have **AdministratorAccess** (e.g., via SSO), you already have full Bedrock + Marketplace access — skip to 1e. Otherwise, attach these policies to your IAM user:
+- **AWS Console → IAM → Users → (your user) → Permissions → Add permissions → Attach policies directly**
+- Attach `AmazonBedrockFullAccess` (for Bedrock model calls)
+- Attach `AWSMarketplaceManageSubscriptions` (for accepting model terms)
+
+1c. _(Only if not using managed policies)_ — Minimal custom inline policy for Bedrock:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream",
+        "bedrock:ListFoundationModels",
+        "bedrock:GetFoundationModel",
+        "bedrock:ListInferenceProfiles",
+        "bedrock:GetInferenceProfile"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+1d. _(Only if not using managed policies)_ — Minimal custom inline policy for Marketplace:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "aws-marketplace:Subscribe",
+        "aws-marketplace:Unsubscribe",
+        "aws-marketplace:ViewSubscriptions"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+1e. Confirm region is us-east-1:
+```bash
+aws configure get region
+# If not us-east-1:
+aws configure set region us-east-1
+```
+
+1f. Verify Bedrock access works:
+```bash
+aws bedrock list-foundation-models --region us-east-1 \
+  --query "modelSummaries[?contains(modelId, 'anthropic')].[modelId,modelName]" \
+  --output table
+```
+Should return a table of Anthropic models including Claude Haiku 5.5.
+
+**Step 2 — Enable Claude Haiku 5.5 model access in Bedrock console**
+
+2a. Open **AWS Console** → search **Amazon Bedrock** → click it
+2b. Confirm region is **US East (N. Virginia)** / `us-east-1` in the top-right corner
+2c. In the left sidebar, click **Model catalog** (under "Foundation models")
+2d. Search for **Claude Haiku 5.5** or find it under the **Anthropic** provider
+2e. Click on **Claude Haiku 5.5** and check the access status:
+   - **"Available to request"** → Click **Request model access** → Accept EULA → Submit
+   - **"Access granted"** → Already done, skip ahead
+   - **"In review"** → Wait a few minutes (usually auto-approves)
+2f. If Anthropic shows a **first-use form** (company name, use case), fill it out:
+   - Company: (your name or org)
+   - Use case: "Learning project — AI-assisted cluster diagnostics"
+2g. Wait until status shows **"Access granted"** (usually instant to 2 minutes)
+
+**Step 3 — Run a test call**
+
+```bash
+aws bedrock-runtime converse \
+  --region us-east-1 \
+  --model-id us.anthropic.claude-haiku-5-5 \
+  --messages '[{"role":"user","content":[{"text":"hello"}]}]' \
+  --inference-config '{"maxTokens":50}'
+```
+
+**Step 4 — Handle errors**
+
+If the call returns `AccessDeniedException`, wait up to 2 minutes (subscription is activating) and retry. If it persists, go back to Step 2 and confirm model access is "Access granted".
+
+**Step 5 — Record results**
+
+From the response `usage` block, record the `inputTokens` and `outputTokens`. Look up the per-1M-token prices in the Bedrock Model catalog page and update `docs/technical-spec.md`.
+
+**Acceptance Criteria:**
+- [ ] Bedrock model access for Claude Haiku 5.5 enabled in us-east-1
+- [ ] Any required Anthropic first-use form completed
+- [ ] Test `converse` call ("hello") succeeds and returns a response
+- [ ] Exact token usage (input/output) from the test call recorded in the ticket
+- [ ] Haiku 5.5 price per 1M input/output tokens recorded in `docs/technical-spec.md`
+- [ ] Haiku 4.5 (`us.anthropic.claude-haiku-4-5`) fallback tested if Haiku 5.5 is unavailable or too costly
+- [ ] No API keys or credentials stored in the repo or the ticket
+
+---
+
+### PETPLAT-118: Evaluate K8sGPT with Bedrock and write ADR
+
+**Type:** Task
+**Priority:** P2
+**Epic:** E-18 AI-Assisted Operations (Bedrock)
+**Story Points:** 2
+**Labels:** ai, bedrock, adr, k8s
+**Blocked by:** PETPLAT-117
+
+**Description:**
+Confirm that the K8sGPT operator can use the Bedrock backend with IRSA (no static keys) and fits within the memory limits of the 2x t4g.small nodes. Compare against alternatives (custom alert summarizer, moving genai-service to Bedrock). Record the decision as an ADR.
+
+**Technical Spec:** [AI-Assisted Operations](./technical-spec.md#ai-assisted-operations-amazon-bedrock)
+
+**Acceptance Criteria:**
+- [ ] K8sGPT Bedrock backend support and IRSA authentication confirmed from official docs
+- [ ] Operator memory/CPU footprint measured or documented; fits on t4g.small nodes with room for existing workloads
+- [ ] Data anonymization option confirmed
+- [ ] K8sGPT Slack sink support confirmed (needed for PETPLAT-121); relay design noted if not supported
+- [ ] Monthly cost estimate written using the real Haiku 5.5 prices from PETPLAT-117
+- [ ] ADR-0012 written in `docs/adr/` and added to the ADR Index
+- [ ] Decision documented: proceed with K8sGPT, or fall back to an alternative
+
+---
+
+### PETPLAT-119: Create IRSA role and least-privilege Bedrock policy (Terraform)
+
+**Type:** Story
+**Priority:** P2
+**Epic:** E-18 AI-Assisted Operations (Bedrock)
+**Story Points:** 3
+**Labels:** terraform, iam, bedrock, ai
+**Blocked by:** PETPLAT-117, PETPLAT-118
+
+**Description:**
+Add an IAM role for the K8sGPT service account (IRSA) in `terraform/modules/observability/`, allowing only `bedrock:InvokeModel` on the Haiku 5.5 inference profile and its underlying model ARNs. Optionally add an application inference profile for separate cost tracking and Bedrock invocation logging.
+
+**Gate:** Before starting, confirm PETPLAT-117 is Done (Bedrock is set up and the test call worked). Otherwise `terraform apply` will succeed but model calls will fail.
+
+**Technical Spec:** [AI-Assisted Operations](./technical-spec.md#ai-assisted-operations-amazon-bedrock), [IRSA Roles](./technical-spec.md#irsa-roles)
+
+**Acceptance Criteria:**
+- [ ] IAM role with OIDC trust policy for the K8sGPT service account only
+- [ ] Policy allows only `bedrock:InvokeModel` (and streaming variant if needed) on specific model and inference-profile ARNs, never `*`
+- [ ] Optional: application inference profile created for cost attribution
+- [ ] Optional: Bedrock invocation logging configured (encrypted, no prompt content retained longer than needed)
+- [ ] Role ARN exported as an output
+- [ ] Tags: Project, Environment, ManagedBy
+- [ ] `terraform validate` passes; `terraform plan` saved and reviewed before apply
+
+---
+
+### PETPLAT-120: Deploy K8sGPT operator to dev via ArgoCD
+
+**Type:** Story
+**Priority:** P2
+**Epic:** E-18 AI-Assisted Operations (Bedrock)
+**Story Points:** 5
+**Labels:** k8s, argocd, ai, bedrock
+**Blocked by:** PETPLAT-119
+
+**Description:**
+Install the K8sGPT operator with Helm through an ArgoCD Application in dev (auto-sync). Configure the Bedrock backend, anonymization, read-only RBAC, and strict resource requests/limits and a token cap.
+
+**Gate:** Before starting, remind the user to confirm Bedrock is set up (PETPLAT-117 Done and IRSA role from PETPLAT-119 applied).
+
+**Technical Spec:** [AI-Assisted Operations](./technical-spec.md#ai-assisted-operations-amazon-bedrock), [GitOps with ArgoCD](./technical-spec.md#gitops-with-argocd)
+
+**Acceptance Criteria:**
+- [ ] Operator deployed in its own namespace via ArgoCD Application in `k8s/argocd/applications/dev/`
+- [ ] Chart version pinned; labels follow platform conventions
+- [ ] ServiceAccount annotated with the IRSA role ARN; no static credentials
+- [ ] Cluster RBAC is read-only (no write verbs)
+- [ ] Anonymization enabled
+- [ ] Requests and limits set; pods Ready with probes
+- [ ] Max output tokens capped
+- [ ] A K8sGPT `Result` resource is produced for a test problem
+
+---
+
+### PETPLAT-121: Post AI analysis results to Slack alongside alerts
+
+**Type:** Story
+**Priority:** P2
+**Epic:** E-18 AI-Assisted Operations (Bedrock)
+**Story Points:** 3
+**Labels:** observability, alertmanager, slack, ai
+**Blocked by:** PETPLAT-120, PETPLAT-124
+
+**Description:**
+Combine the Slack alerts (PETPLAT-124) with the AI analysis (PETPLAT-120). Flow: (1) Alertmanager posts the alert to Slack immediately, without waiting for the AI; (2) K8sGPT analyzes the failing resource with Haiku 5.5 on Bedrock; (3) the AI result (cause and suggested fix, in plain English) is posted to the same Slack channel, linked to the alert by namespace and resource name. Preferred option: K8sGPT's built-in Slack sink; fallback: a small webhook relay. A threaded reply requires a Slack bot token; an incoming webhook can only post a new message. Alerts must still fire if the AI or Bedrock is unavailable.
+
+**Technical Spec:** [AI-Assisted Operations](./technical-spec.md#ai-assisted-operations-amazon-bedrock), [Observability](./technical-spec.md#observability)
+
+**Acceptance Criteria:**
+- [ ] Alert reaches Slack first, within 2 minutes, independent of the AI
+- [ ] AI analysis (cause + suggested fix) posted to the same channel for the same resource
+- [ ] AI message is labeled "AI-generated, advisory, verify before acting"
+- [ ] Alerts are still delivered when Bedrock errors or times out
+- [ ] Duplicate and repeated AI messages are rate-limited (cost and noise control)
+- [ ] Slack credentials come from Secrets Manager via ExternalSecret; none in Git
+- [ ] Tested in dev with a deliberately broken pod: alert and AI analysis both appear in Slack
+
+---
+
+### PETPLAT-122: Test with a broken deployment and promote to prod
+
+**Type:** Task
+**Priority:** P2
+**Epic:** E-18 AI-Assisted Operations (Bedrock)
+**Story Points:** 2
+**Labels:** ai, testing, prod
+**Blocked by:** PETPLAT-121
+
+**Description:**
+Test end to end in dev with a deliberately broken deployment (bad image tag, failing probe, missing secret), then add the Application for prod with manual sync.
+
+**Technical Spec:** [AI-Assisted Operations](./technical-spec.md#ai-assisted-operations-amazon-bedrock)
+
+**Acceptance Criteria:**
+- [ ] At least 3 failure types tested in dev; AI explanation reviewed for accuracy
+- [ ] Token usage and cost for the test run recorded
+- [ ] Prod ArgoCD Application in `k8s/argocd/applications/prod/` with manual sync
+- [ ] Prod sync performed and verified
+
+---
+
+### PETPLAT-123: Add runbook, cost guardrails, and budget alarm
+
+**Type:** Task
+**Priority:** P2
+**Epic:** E-18 AI-Assisted Operations (Bedrock)
+**Story Points:** 2
+**Labels:** docs, cost-optimization, bedrock
+**Blocked by:** PETPLAT-122
+
+**Description:**
+Document how to operate, disable and troubleshoot the AI integration, and add a cost guardrail so a noisy cluster cannot create a surprise bill.
+
+**Technical Spec:** [AI-Assisted Operations](./technical-spec.md#ai-assisted-operations-amazon-bedrock), [Scaling and Cost](./technical-spec.md#scaling-and-cost)
+
+**Acceptance Criteria:**
+- [ ] Runbook in `docs/` using the platform runbook format (when, who, time, steps, verify, rollback)
+- [ ] How to disable the integration quickly (scale operator to 0) documented
+- [ ] AWS Budget alert (e.g., $10/month) created via Terraform (`aws_budgets_budget`)
+- [ ] Known limitations documented (AI output may be wrong; advisory only)
+
+---
+
+---
+
 ## Summary
 
 | Priority | Epics | Stories/Tasks |
 |----------|-------|---------------|
 | P0 | Claude Code Setup, Foundation, VPC, EKS, ECR, RDS, Secrets (Secrets Manager), K8s Base, CI Pipeline, Helm Charts, GitOps (ArgoCD) | 64 |
-| P1 | DNS, K8s Overlays, Observability, Security, Docs | 38 |
-| P2 | Scaling & Cost (Karpenter) | 6 |
-| **Total** | **17 epics (E-12 removed = 16 active)** | **108 stories/tasks** |
+| P1 | DNS, K8s Overlays, Observability, Security, Docs | 39 |
+| P2 | Scaling & Cost (Karpenter), AI-Assisted Operations (Bedrock) | 13 |
+| **Total** | **18 epics (E-12 removed = 17 active)** | **116 stories/tasks** |
 
-**Estimated total story points:** ~341
+**Estimated total story points:** ~364

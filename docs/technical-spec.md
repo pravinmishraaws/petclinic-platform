@@ -34,7 +34,8 @@
 20. [Helm Charts](#helm-charts)
 21. [GitOps with ArgoCD](#gitops-with-argocd)
 22. [Karpenter (Node Autoscaling)](#karpenter-node-autoscaling)
-23. [ADR Index](#adr-index)
+23. [AI-Assisted Operations (Amazon Bedrock)](#ai-assisted-operations-amazon-bedrock)
+24. [ADR Index](#adr-index)
 
 ---
 
@@ -1640,6 +1641,29 @@ spec:
 ```
 
 > **Note:** When the Graviton free trial is active, use `on-demand` only. After expiry, add `spot` to `capacity-type` for cost savings. Karpenter's Spot diversification picks the cheapest available instance type.
+
+---
+
+## AI-Assisted Operations (Amazon Bedrock)
+
+> **Status:** Proposed (Epic E-18). Values marked TBD are confirmed in PETPLAT-117 / PETPLAT-118.
+
+| Setting | Value |
+|---------|-------|
+| Purpose | Advisory AI explanations of cluster problems (K8sGPT operator) |
+| Model | Claude Haiku 5.5 (fallback: Claude Haiku 4.5) |
+| Model ID (us-east-1) | Inference profile `us.anthropic.claude-haiku-5-5` (or `global.` prefix); direct single-region calls not supported |
+| Endpoint | `bedrock-runtime` (Converse / InvokeModel) |
+| Region | us-east-1 |
+| Auth | IRSA, no static keys or API keys |
+| IAM actions | `bedrock:InvokeModel` only, on specific model and inference-profile ARNs |
+| Cluster RBAC | Read-only |
+| Data handling | Anonymize resource names before sending to the model |
+| Billing | AWS Marketplace line item under the model provider |
+| Price per 1M tokens (input / output) | TBD (record in PETPLAT-117); Haiku 4.5 reference: $1 / $5 |
+| Cost guardrail | AWS Budget alert (TBD amount, suggested $10/month) |
+| Manual prerequisites | Model access / first-use form in the Bedrock console (PETPLAT-117) |
+| Rollout | Dev (auto-sync) first, then prod (manual sync) |
 
 ---
 
